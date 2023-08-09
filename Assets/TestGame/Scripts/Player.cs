@@ -1,6 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
+
 using UnityEngine;
+using TMPro;
+using Spine.Unity;
+using UnityEngine.SceneManagement;
 
 namespace Unicorn
 {
@@ -10,42 +12,83 @@ namespace Unicorn
         [SerializeField] Transform shootPoint;
 
         public int totalEnemies;
-        public int enemiesKilled;
+        public int enemiesKilled=0;
+        [SerializeField] public TMP_Text enemyText;
 
+        SkeletonAnimation skeletonAnimation;
+
+        public bool isLoose = false;
+
+        [SerializeField] private GameObject victory;
+        [SerializeField] private GameObject loose;
+
+       
 
         void Start()
         {
-
+            skeletonAnimation = GetComponentInChildren<SkeletonAnimation>();
+            skeletonAnimation.AnimationState.SetAnimation(0, "walk", true);
         }
 
 
         void Update()
         {
-            //transform.Translate(Vector3.right * Time.deltaTime * 5);
+            if(!isLoose) transform.Translate(Vector3.right * Time.deltaTime * 2);
+
+            enemyText.text = "”ничтожено врагов: " + enemiesKilled.ToString() + "/" + totalEnemies.ToString();
 
             if (Input.GetMouseButtonDown(0))
             {
-                Debug.Log("pressed");
-
-                //Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
                 
-                //RaycastHit hit;
+
+                
 
                 RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero,Mathf.Infinity,2);
 
-                Debug.Log(hit.transform.name);
+               
 
-                if (hit.transform.root.TryGetComponent<Enemy>(out var enemy))
+                if (hit!=null&&hit.transform.root.TryGetComponent<Enemy>(out var enemy))
                     {
-                    Debug.Log("hit");
+                    
                         Instantiate(projectile, shootPoint.transform.position, Quaternion.identity);
+                        skeletonAnimation.AnimationState.SetAnimation(0, "shoot", false);
+                        skeletonAnimation.AnimationState.AddAnimation(0, "walk", true,1);
 
-                    }
+
+                }
 
 
                 
 
             }
+
+        }
+
+        private void OnTriggerEnter2D(Collider2D collision)
+        {
+            if (collision.transform.root.TryGetComponent<Enemy>(out var enemy))
+            {
+                Debug.Log("hit enemy trigger");
+                enemy.Win();
+                skeletonAnimation.AnimationState.SetAnimation(0, "loose", false);
+                isLoose = true;
+                loose.gameObject.SetActive(true);
+
+
+            }
+
+            if (collision.transform.name=="crypt")
+            {
+                skeletonAnimation.AnimationState.SetAnimation(0, "idle", true);
+                isLoose = true;
+                victory.gameObject.SetActive(true);
+            }
+
+        }
+
+        public void ReastartLevel()
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
     }
 }
